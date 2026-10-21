@@ -23,6 +23,18 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+        
+      - name: Restore missing Android test paths
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p reference/app/src/main/assets
+          cp web/index.html reference/app/src/main/assets/index.html
+          cp web/tiktok-label-import.js reference/app/src/main/assets/tiktok-label-import.js
+          test -s reference/app/src/main/assets/index.html
+          test -s reference/app/src/main/assets/tiktok-label-import.js
+          echo "Compatibility paths restored."
+
       - name: Select Xcode
         run: |
           xcodebuild -version
