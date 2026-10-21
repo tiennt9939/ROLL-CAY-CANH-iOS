@@ -1,16 +1,22 @@
-
-#!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
 const iosRoot = path.join(root, 'ios', 'App', 'App');
-const sourcePlugin = path.join(root, 'native', 'ios', 'Plugins', 'RollPlatformPlugin.swift');
+const sourcePlugin = path.join(
+  root,
+  'native',
+  'ios',
+  'Plugins',
+  'RollPlatformPlugin.swift'
+);
 const targetPlugin = path.join(iosRoot, 'RollPlatformPlugin.swift');
+
 const bridgeCandidates = [
   path.join(iosRoot, 'ViewController.swift'),
   path.join(iosRoot, 'BridgeViewController.swift')
 ];
+
 const plistFile = path.join(iosRoot, 'Info.plist');
 const bundleId = 'vn.rollgardencanh.app';
 
@@ -23,12 +29,15 @@ if (!fs.existsSync(sourcePlugin)) {
   fail(`Missing native plugin: ${sourcePlugin}`);
 }
 
-const bridgeFile = bridgeCandidates.find(file => fs.existsSync(file));
+const bridgeFile = bridgeCandidates.find(file =>
+  fs.existsSync(file)
+);
 
 if (!bridgeFile) {
   const available = fs.existsSync(iosRoot)
     ? fs.readdirSync(iosRoot).join(', ')
     : '(ios/App/App missing)';
+
   fail(
     `Capacitor generated no ViewController.swift or BridgeViewController.swift in ${iosRoot}. Files: ${available}`
   );
@@ -43,22 +52,33 @@ fs.copyFileSync(sourcePlugin, targetPlugin);
 let bridge = fs.readFileSync(bridgeFile, 'utf8');
 
 if (!bridge.includes('import Capacitor')) {
-  bridge = bridge.replace(/^(import [^\n]+\n)/m, '$1import Capacitor\n');
+  bridge = bridge.replace(
+    /^(import [^\n]+\n)/m,
+    '$1import Capacitor\n'
+  );
 }
 
-if (!bridge.includes('registerPluginInstance(RollPlatformPlugin())')) {
-  const marker = /override\s+func\s+capacitorDidLoad\s*\(\s*\)\s*\{/;
+if (
+  !bridge.includes(
+    'registerPluginInstance(RollPlatformPlugin())'
+  )
+) {
+  const marker =
+    /override\s+func\s+capacitorDidLoad\s*\(\s*\)\s*\{/;
 
   if (marker.test(bridge)) {
     bridge = bridge.replace(
       marker,
-      match => `${match}\n        bridge?.registerPluginInstance(RollPlatformPlugin())`
+      match =>
+        `${match}\n        bridge?.registerPluginInstance(RollPlatformPlugin())`
     );
   } else {
     const lastBrace = bridge.lastIndexOf('}');
 
     if (lastBrace < 0) {
-      fail(`${path.basename(bridgeFile)} has no class closing brace.`);
+      fail(
+        `${path.basename(bridgeFile)} has no class closing brace.`
+      );
     }
 
     bridge =
@@ -86,15 +106,23 @@ const entries = [
 ];
 
 for (const [key, value] of entries) {
-  if (plist.includes(`<key>${key}</key>`)) continue;
+  if (plist.includes(`<key>${key}</key>`)) {
+    continue;
+  }
 
   const escaped = value
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;');
 
-  const entry = `\t<key>${key}</key>\n\t<string>${escaped}</string>\n`;
-  plist = plist.replace(/<\/dict>/, `${entry}</dict>`);
+  const entry =
+    `\t<key>${key}</key>\n` +
+    `\t<string>${escaped}</string>\n`;
+
+  plist = plist.replace(
+    /<\/dict>/,
+    `${entry}</dict>`
+  );
 }
 
 fs.writeFileSync(plistFile, plist);
@@ -120,7 +148,9 @@ if (!/TARGETED_DEVICE_FAMILY\s*=\s*"?1,2"?;/.test(project)) {
   );
 
   if (!/TARGETED_DEVICE_FAMILY\s*=\s*"?1,2"?;/.test(project)) {
-    fail('Could not set TARGETED_DEVICE_FAMILY to universal iPhone+iPad (1,2).');
+    fail(
+      'Could not set TARGETED_DEVICE_FAMILY to universal iPhone+iPad (1,2).'
+    );
   }
 
   fs.writeFileSync(pbxproj, project);
