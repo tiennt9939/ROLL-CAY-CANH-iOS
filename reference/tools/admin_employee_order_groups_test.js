@@ -1,0 +1,32 @@
+const fs=require('fs');
+const vm=require('vm');
+const html=fs.readFileSync('app/src/main/assets/index.html','utf8');
+const start=html.indexOf('function adminOrderEmployeeDisplayName(r)');
+const end=html.indexOf('function renderAdminPdfSharedReassignControl',start);
+if(start<0||end<0)throw new Error('Admin employee grouping helpers not found');
+const source=html.slice(start,end);
+const context={};vm.createContext(context);vm.runInContext(source,context);
+const rows=[];
+for(let i=0;i<17;i++)rows.push({id:'h'+i,employee:'Huy',assignedUid:'huy-uid',status:'pending',assignmentMode:'assigned'});
+for(let i=0;i<25;i++)rows.push({id:'l'+i,employee:'Luân lớn',assignedUid:'luan-uid',status:'pending',assignmentMode:'assigned'});
+const groups=context.groupAdminOrdersByEmployee(rows);
+if(groups.length!==2)throw new Error(`Expected two employee groups, got ${groups.length}`);
+const counts=Object.fromEntries(groups.map(g=>[g.name,g.count]));
+if(counts['Huy']!==17||counts['Luân lớn']!==25)throw new Error(`Incorrect employee counts: ${JSON.stringify(counts)}`);
+const done=context.groupAdminOrdersByEmployee(rows.slice(0,5));
+if(done.length!==1||done[0].count!==5)throw new Error('Completed employee grouping should count rows independently');
+// Exercise the actual lazy loader for private, shared, and completed buckets.
+context.D={packingOrders:[...rows,{id:'shared-a',employee:'Đơn chung',assignedUid:'',status:'pending',assignmentMode:'open_pool'},{id:'done-a',employee:'Huy',assignedUid:'huy-uid',status:'completed',assignmentMode:'assigned'}]};
+context.orderModeIsShared=r=>String(r.assignmentMode||'')==='open_pool';
+context.orderFilterMatch=()=>true;
+context.renderAdminAssignmentOrderCard=r=>`<article>${r.id}</article>`;
+function target(kind,key,filter='all',open=true){const content={innerHTML:'',dataset:{}};return {open,dataset:{adminGroupKind:kind,adminGroupKey:key,adminGroupFilter:filter},querySelector:()=>content,content}}
+let item=target('private','name:huy');context.renderAdminEmployeeOrderGroup(item);
+if((item.content.innerHTML.match(/<article>/g)||[]).length!==17)throw new Error('Private group did not lazily render Huy pending cards');
+item=target('shared','shared');context.renderAdminEmployeeOrderGroup(item);
+if(item.content.innerHTML!=='<article>shared-a</article>')throw new Error('Shared group did not render only shared orders');
+item=target('completed','name:huy');context.renderAdminEmployeeOrderGroup(item);
+if(item.content.innerHTML!=='<article>done-a</article>')throw new Error('Completed group did not render only completed orders for the employee');
+item.open=false;context.renderAdminEmployeeOrderGroup(item);
+if(item.content.innerHTML!=='')throw new Error('Collapsed employee group should clear order-card DOM');
+console.log('ADMIN EMPLOYEE GROUP COUNTS + LAZY RENDER PASS: Huy 17, Luân lớn 25; shared/private/completed render on demand');

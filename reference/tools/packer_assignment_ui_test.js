@@ -1,0 +1,18 @@
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const root=path.join(__dirname,'..');
+const html=fs.readFileSync(path.join(root,'app/src/main/assets/index.html'),'utf8');
+const start=html.indexOf('function renderPackerOrders(){'),end=html.indexOf('async function acceptOpenPoolOrder',start);
+assert(start>=0&&end>start,'employee order list renderer exists');
+const renderer=html.slice(start,end);
+assert(renderer.includes("String(r.assignmentMode||'')!=='open_pool'"),'employee list must filter legacy open-pool rows');
+assert(renderer.includes("String(r.assignedUid||'')===uid"),'employee sees only their own assigned orders');
+assert(renderer.includes('ĐƠN ĐƯỢC GIAO CHO BẠN · CHƯA HOÀN TẤT'),'employee list groups assigned incomplete orders clearly');
+assert(!renderer.includes('AI CŨNG CÓ THỂ NHẬN')&&!renderer.includes('NHẬN ĐƠN & ĐÓNG HÀNG'),'no shared-pool pickup affordance remains in employee UI');
+assert(renderer.includes('packerCompletedExpanded?\'open\':\'\''),'completed work remains collapsed by default');
+assert(renderer.includes('details class="order-accordion"'),'completed orders remain expandable');
+assert(renderer.includes('openPackerCompleteOrder('),'assigned orders can proceed directly to completion');
+assert(html.includes('async function acceptOpenPoolOrder(){toast('),'old pool handler must be an inert notice, not an assignment path');
+assert(html.includes('scanDailyShipmentAssignedBatch'),'daily shipping scanner must use assigned-only native mode');
+assert(html.includes('assignedEmployeeName')&&html.includes('assignmentRevision'),'scan payload snapshots person and assignment revision');
+console.log('PACKER ASSIGNED-ONLY ORDER UI TEST PASS');

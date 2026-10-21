@@ -1,0 +1,12 @@
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const root=path.join(__dirname,'..');
+const html=fs.readFileSync(path.join(root,'app/src/main/assets/index.html'),'utf8');
+const gradle=fs.readFileSync(path.join(root,'app/build.gradle.kts'),'utf8');
+const preflight=fs.readFileSync(path.join(root,'tools/preflight.py'),'utf8');
+assert(gradle.includes('versionName = "26.2.92"') && gradle.includes('versionCode = 144'),'version must be 26.2.92 / code 144');
+assert(html.includes('function dailyShipmentAssignmentFilterValue(id)'),'assignment filter helper must be declared');
+assert(!html.includes('dailyAssignmentFilterValue('),'old undefined helper name must not be referenced');
+assert((html.match(/dailyShipmentAssignmentFilterValue\(/g)||[]).length>=6,'all assignment filter fields must use the defined helper');
+assert(preflight.includes('versionName = "26.2.92"')&&preflight.includes('versionCode = 144'),'preflight must match build metadata');
+console.log('V26.2.69 ASSIGNMENT FILTER HELPER REGRESSION PASS');

@@ -1,0 +1,34 @@
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const assert = require('assert');
+const root = path.join(__dirname, '..');
+const html = fs.readFileSync(path.join(root, 'app/src/main/assets/index.html'), 'utf8');
+const gradle = fs.readFileSync(path.join(root, 'app/build.gradle.kts'), 'utf8');
+assert(/function __loadScript\(src,timeoutMs=4200\)/.test(html), 'Firebase script loader must have a short per-script timeout');
+assert(html.includes("const deadline=Date.now()+16000"), 'Firebase CDN fallback must have a bounded total deadline');
+assert(html.includes("'https://www.gstatic.com/firebasejs/10.14.1/'") && html.includes("'https://cdn.jsdelivr.net/npm/firebase@10.14.1/'") && html.includes("'https://cdnjs.cloudflare.com/ajax/libs/firebase/10.14.1/'"), 'All Firebase SDK fallback hosts should remain configured');
+assert(html.includes("if(error){try{script.remove()}catch(_){}reject(error)}else resolve(true)"), 'Failed/timed-out Firebase scripts must be removed before fallback');
+const cloudStart = html.indexOf('const CloudSync = (()=>{');
+const initStart = html.indexOf('  async function init(){', cloudStart);
+const initEnd = html.indexOf('\n  async function waitUntilAuthReady', initStart);
+assert(cloudStart >= 0 && initStart > cloudStart && initEnd > initStart, 'CloudSync init function not found');
+const init = html.slice(initStart, initEnd);
+assert(!init.includes('await auth.setPersistence('), 'Cold-start init must not await Auth persistence configuration');
+assert(!init.includes('await db.enablePersistence('), 'Firestore IndexedDB persistence must not block Auth listener setup');
+assert(init.includes("Promise.resolve(db.enablePersistence({synchronizeTabs:true})).catch"), 'Firestore cache initialization must continue asynchronously');
+assert(init.indexOf('db.enablePersistence') < init.indexOf('auth.onAuthStateChanged'), 'Firebase auth listener should be registered immediately after nonblocking cache start');
+const signInStart = html.indexOf('  async function signIn(email,password,remember=true){', cloudStart);
+const signInEnd = html.indexOf('\n  function normalizeOrders', signInStart);
+const signIn = html.slice(signInStart, signInEnd);
+assert(signIn.includes('await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)'), 'Interactive login must keep explicit LOCAL persistence');
+assert(signIn.includes('await auth.signInWithEmailAndPassword(email,password)'), 'Login must still use Firebase Authentication');
+assert(init.includes('await ensureProfile()') && init.includes('hideLoginGate();'), 'User profile/permission validation must occur before hiding login gate');
+assert(gradle.includes('versionCode = 144') && gradle.includes('versionName = "26.2.92"'), 'Android version must match V26.2.92 missing-photo recovery patch');
+
+const startupTail = html.slice(html.indexOf('ensureFirebaseSdk().then(()=>CloudSync.init())'));
+assert(!startupTail.includes('migrateOrderImagesToDrive()'), 'app startup must not enumerate and migrate all historical order photos');
+assert(!html.includes("setTimeout(()=>{if(document.visibilityState==='visible'&&activeMainTabId()!=='day')loadAllPackerRecords()"), 'full order-history hydration must not run on a login timer');
+assert(html.includes("if(activeMainTabId()==='control')renderControls();"), 'controls and user list must not render during login when another tab is active');
+
+console.log('PASS: login startup bounded SDK loader, nonblocking cache init, and secure Auth/profile flow');

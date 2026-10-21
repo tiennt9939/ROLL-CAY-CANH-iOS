@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('assert'),fs=require('fs');
+const html=fs.readFileSync('app/src/main/assets/index.html','utf8');
+const parser=fs.readFileSync('app/src/main/assets/tiktok-label-import.js','utf8');
+assert(/function importParsedLabelsIntoDailyShipments\(parsed\)/.test(html),'PDF labels must enter the daily shipment queue');
+const importFn=html.slice(html.indexOf('function importParsedLabelsIntoDailyShipments'),html.indexOf('function dailyShipmentPendingPhotos'));
+assert(importFn.includes('assignmentRequired:false')&&importFn.includes("assignmentStatus:'unassigned'"),'import must not auto-assign labels');
+assert(/id="dailyShipmentAssignmentPanel"/.test(html)&&/id="dailyAssignmentPlantFilter"/.test(html)&&/id="dailyAssignmentSizeFilter"/.test(html)&&/id="dailyAssignmentUnitFilter"/.test(html),'assignment board must offer combined plant/size/unit filters');
+assert(/function adminBulkAssignDailyShipmentLabels\(\)/.test(html)&&/function adminAssignSingleDailyShipmentLabel\(tracking\)/.test(html),'single-row and bulk group assignment actions must exist');
+assert(/adminAssignDailyShipmentLabels\(date,assignments\)/.test(html),'assignment must be persisted by the existing CloudSync layer');
+assert(/assignmentHistory/.test(html)&&/assignmentRevision/.test(html),'changing an assignee must be audited and revision protected');
+assert(/function dailyShipmentAssignmentProductInfo/.test(html)&&/expectedPlantsPerSoldUnit/.test(html),'the group board must group by normalized plants-per-sold-unit data');
+assert(/function applyDailyShipmentAssignments/.test(html)&&/Chưa ghi tiền công hoặc tồn kho/.test(html),'assignment is distinct from completion/payroll/stock recording');
+assert(/applyRecognitionRule/.test(parser)&&/recognitionSignature/.test(parser),'recognition rules remain reusable during import');
+assert(/saveTikTokRecognitionRuleForProduct/.test(html),'manual Admin mapping still teaches future recognition');
+assert(!html.includes('TẠO ĐƠN CHUNG'),'old PDF shared-order button must be gone');
+assert(!html.includes('value="open_pool"'),'old PDF assignment mode must no longer be user-selectable');
+console.log('PDF IMPORT -> GROUP FILTER -> SINGLE/BULK ASSIGNMENT TEST PASS');

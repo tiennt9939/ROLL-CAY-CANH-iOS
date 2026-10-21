@@ -1,0 +1,18 @@
+const fs = require('fs');
+const path = require('path');
+const root = path.join(__dirname, '..');
+const html = fs.readFileSync(path.join(root, 'app/src/main/assets/index.html'), 'utf8');
+const gradle = fs.readFileSync(path.join(root, 'app/build.gradle.kts'), 'utf8');
+const assert = (ok, msg) => { if (!ok) throw new Error(msg); };
+assert(/versionName\s*=\s*"26\.2\.92"/.test(gradle), 'Version must be 26.2.92');
+assert(/versionCode\s*=\s*144/.test(gradle), 'Version code must be 138');
+assert(html.includes('.pack-proof-status.status-blocked') && html.includes('.pack-proof-status.status-ready'), 'Red blocked and green ready status styles must exist');
+assert(html.includes('.primary.pack-submit-blocked') && html.includes('.primary.pack-submit-ready'), 'The confirm button must visibly show red/green states');
+assert(html.includes("state='status-blocked',message='🔴 CHƯA SẴN SÀNG"), 'Unready state must explicitly instruct the worker');
+assert(html.includes("btn.textContent=uploadBusy?'🟢 XÁC NHẬN HOÀN TẤT · CHỜ DRIVE':'🟢 XÁC NHẬN HOÀN TẤT ĐƠN'"), 'Ready state must let worker confirm while Drive upload is already in progress');
+assert(html.includes("btn.classList.add('pack-submit-ready')") && html.includes("btn.classList.add('pack-submit-blocked')"), 'Button class must update with actual readiness');
+assert(html.includes("btn.disabled=!ready||packerCompletionSubmitting"), 'Proof button must only be disabled until photo, OCR/shipment validation, or submission guard is unresolved');
+assert(html.includes("const status=$('adminOrderProofStatus'),btn=$('adminOrderCompleteBtn')"), 'One-step packer modal must update its own button color/status');
+assert(html.includes("state='status-waiting';message='🟡 ĐANG ĐỌC MÃ VẬN ĐƠN"), 'OCR busy state must remain distinct from ready state');
+assert(html.includes("if(uploadBusy&&hasPhoto&&!ocrBusy&&shipmentOk){state='status-waiting'"), 'When Drive is uploading, explain safe waiting behavior');
+console.log('PACK COMPLETION COLOR INDICATOR TEST PASS: red blocked / yellow OCR pending / green ready; readiness guard preserved');

@@ -1,0 +1,13 @@
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const root=path.join(__dirname,'..');
+const html=fs.readFileSync(path.join(root,'app/src/main/assets/index.html'),'utf8');
+const gradle=fs.readFileSync(path.join(root,'app/build.gradle.kts'),'utf8');
+assert(gradle.includes('versionName = "26.2.92"') && gradle.includes('versionCode = 144'),'version must be 26.2.92 / code 144');
+assert(html.includes('async function loadAssignedDailyShipmentLabels()'),'cloud API must read assigned PDF labels');
+assert(html.includes('loadAssignedDailyShipmentLabels,previewLegacyIncompleteOrdersCleanup'),'new API must be exported');
+assert(/filter\(row=>String\(row\?\.assignedUid\|\|''\)===uid&&row\?\.assignmentRequired===true&&String\(row\?\.assignmentMode\|\|''\)!=='open_pool'\)/.test(html),'employee query must filter strictly to current UID and required assignment');
+assert(html.includes('NHÃN PDF ĐƯỢC GIAO CHO BẠN'),'packer screen must show assigned PDF labels');
+assert(html.includes('QUÉT CÁC NHÃN PDF ĐƯỢC GIAO'),'packer screen must expose assigned batch scan action');
+assert(html.includes('packerDailyShipmentLabelsCache'),'assigned PDF labels must be cached for rendering');
+console.log('V26.2.69 PACKER ASSIGNED PDF VISIBILITY PASS');

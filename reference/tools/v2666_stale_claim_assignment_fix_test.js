@@ -1,0 +1,22 @@
+
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const root=path.join(__dirname,'..');
+const html=fs.readFileSync(path.join(root,'app/src/main/assets/index.html'),'utf8');
+const gradle=fs.readFileSync(path.join(root,'app/build.gradle.kts'),'utf8');
+assert(/versionName\s*=\s*"26\.2\.92"/.test(gradle)&&/versionCode\s*=\s*144/.test(gradle),'version metadata must be 26.2.92 / 138');
+const start=html.indexOf('async function adminAssignDailyShipmentLabels('),end=html.indexOf('async function loadAssignedDailyShipmentLabels(',start);
+assert(start>=0&&end>start,'assignment transaction must exist');
+const fn=html.slice(start,end);
+assert(fn.includes('const hasRecordedEvidence='),'recorded evidence must be checked separately');
+assert(fn.includes("if(hasRecordedEvidence){"),'recorded report/scan must remain protected');
+assert(fn.includes('legacyOrderIdsToDelete.push(oldOrderId)'),'safe pending legacy order must be retired atomically before assignment');
+assert(fn.includes('hasFinancialOrInventoryEvidence'),'legacy order with wage/inventory evidence must remain protected');
+assert(fn.includes('cleanupOrderHasCompletionEvidence(oldOrder)'),'completed legacy orders must remain protected');
+assert(fn.includes("source:'safe_legacy_order_retirement'"),'retired legacy claims must be auditable');
+assert(fn.includes('const safeClaimStatuses=new Set'),'legacy claim recovery must use an explicit allowlist of pre-recording statuses');
+assert(fn.includes('!safeClaimStatuses.has(claimStatus)||!linkedClaimIds.has(claimOrderId)'),'claim recovery must reject unknown states or unrelated order links');
+assert(fn.includes("status:'voided'")&&fn.includes("source:'assignment_orphan_claim_recovery'"),'orphan claim recovery must be audited as voided');
+assert(fn.includes('recoveredFromOrderId'),'recovery must retain prior linked order ID for audit');
+assert(fn.includes('shipmentTrackingClaims'),'claim protection remains active');
+console.log('V26.2.69 STALE CLAIM ASSIGNMENT FIX PASS');

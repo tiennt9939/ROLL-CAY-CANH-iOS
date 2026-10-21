@@ -1,0 +1,26 @@
+const fs = require('fs');
+const path = require('path');
+const root = path.join(__dirname, '..');
+const html = fs.readFileSync(path.join(root, 'app/src/main/assets/index.html'), 'utf8');
+const java = fs.readFileSync(path.join(root, 'app/src/main/java/com/quanlycay/apk/MainActivity.java'), 'utf8');
+const manifest = fs.readFileSync(path.join(root, 'app/src/main/AndroidManifest.xml'), 'utf8');
+const gradle = fs.readFileSync(path.join(root, 'app/build.gradle.kts'), 'utf8');
+const workflow = fs.readFileSync(path.join(root, '.github/workflows/build-apk.yml'), 'utf8');
+function ok(condition, message) { if (!condition) throw new Error(message); console.log('PASS: ' + message); }
+ok(/versionName\s*=\s*"[0-9]+(?:\.[0-9]+)+"/.test(gradle) && /versionCode\s*=\s*[124-9]+/.test(gradle), 'Android versionName and versionCode are declared');
+ok(java.includes('checkForAppUpdates') && java.includes('downloadAndInstallAppUpdate'), 'native bridge exposes check and download methods');
+ok(java.includes('GITHUB_LATEST_RELEASE_API') && java.includes('/releases/latest'), 'native bridge queries GitHub Releases latest endpoint');
+ok(java.includes('SHA-256 không khớp') && java.includes('downloadVerifiedUpdate'), 'download verifies checksum before installer');
+ok(java.includes('ACTION_MANAGE_UNKNOWN_APP_SOURCES') && java.includes('installDownloadedUpdate'), 'installer permission and Android installer handoff exist');
+ok(html.includes('appUpdatePanel') && html.includes('KIỂM TRA CẬP NHẬT') && html.includes('TẢI VÀ CÀI ĐẶT BẢN MỚI'), 'Sync panel offers version check and update UI');
+ok(html.includes('24*60*60*1000') && html.includes('checkForAppUpdate(true)'), 'startup check is throttled to once per 24 hours');
+ok(manifest.includes('REQUEST_INSTALL_PACKAGES') && manifest.includes('androidx.core.content.FileProvider'), 'manifest contains installer permission and FileProvider');
+ok(gradle.includes('buildConfig = true'), 'AGP 8.x explicitly generates BuildConfig for version checks');
+ok(html.indexOf('id=\"appUpdatePanel\"') < html.indexOf('id=\"driveConnectBtn\"'), 'Update controls appear before Drive storage controls in the Sync panel');
+ok(fs.existsSync(path.join(root, 'app/src/main/res/xml/file_paths.xml')), 'FileProvider cache path exists');
+ok(workflow.includes('softprops/action-gh-release@v3') && workflow.includes('DEBUG_KEYSTORE_BASE64') && workflow.includes('EXPECTED_APK_CERT_SHA256') && workflow.includes('.apk.sha256') && workflow.includes('actual_cert'), 'workflow publishes checksummed APK only with a stable signing key');
+ok(workflow.includes('sort -V') && workflow.includes('AUTO-UPDATE-SOURCE.zip'), 'workflow can select the newest versioned updater source ZIP');
+ok(gradle.includes('org.jetbrains.kotlin') && gradle.includes('kotlin-stdlib-jdk8') && gradle.includes('useVersion("1.8.22")'), 'Kotlin stdlib variants are aligned to prevent duplicate classes');
+const installMethod = java.slice(java.indexOf('private void installDownloadedUpdate'), java.indexOf('private String safeJsCallback'));
+const installCatch = installMethod.slice(installMethod.indexOf('} catch (Exception e) {'));
+ok(installCatch.includes('JSONObject error = new JSONObject()') && !installCatch.includes('deliverAppUpdateResult("__appUpdateInstallResult", new JSONObject().put'), 'installer error callback handles JSONException safely');

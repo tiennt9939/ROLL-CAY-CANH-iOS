@@ -1,0 +1,13 @@
+'use strict';
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const root=path.join(__dirname,'..');
+const html=fs.readFileSync(path.join(root,'app/src/main/assets/index.html'),'utf8');
+const gradle=fs.readFileSync(path.join(root,'app/build.gradle.kts'),'utf8');
+assert(/versionName\s*=\s*"26\.2\.92"/.test(gradle)&&/versionCode\s*=\s*144/.test(gradle),'V26.2.92 metadata required');
+const start=html.indexOf('async function adminAssignDailyShipmentLabels('),end=html.indexOf('async function loadAssignedDailyShipmentLabels(',start);
+assert(start>=0&&end>start,'assignment transaction must exist');
+const fn=html.slice(start,end);
+for(const needle of ['hasRecordedEvidence','cleanupOrderHasCompletionEvidence(oldOrder)','hasFinancialOrInventoryEvidence','tx.delete(orderRefs[i])','nextData.packingOrders=legacyPackingRows','source:\'safe_legacy_order_retirement\'','safeClaimStatuses','sameTrackingRows.some','assignmentRevision']) assert(fn.includes(needle),`missing safe-retirement invariant: ${needle}`);
+assert(fn.includes('tx.set(appRef,{data:nextData'),'queue assignment and legacy cleanup must commit atomically');
+assert(fn.includes('if(hasRecordedEvidence){')&&fn.includes('skippedRecordedRows.push'),'recorded scan/report must block cleanup');
+console.log('V26.2.69 SAFE LEGACY ORDER RETIREMENT PASS');

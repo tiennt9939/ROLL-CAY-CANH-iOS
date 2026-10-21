@@ -1,0 +1,11 @@
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const html = fs.readFileSync(path.join(__dirname, '../app/src/main/assets/index.html'), 'utf8');
+assert(html.includes("assignmentStatusFilter='pending'"), 'Admin order list should open on incomplete orders by default');
+assert(html.includes("function setAssignmentStatusFilter(filter)"), 'Admin must be able to filter by status');
+assert(html.includes("['pending','⏳ Chưa hoàn tất']") && html.includes("['unclaimed','🟠 Chờ nhận']") && html.includes("['assigned','🔵 Đang đóng']") && html.includes("['completed','✅ Đã hoàn tất']") && html.includes("['all','📋 Tất cả']"), 'Admin status bar must show all primary statuses');
+assert(html.includes('data-admin-group-status="${esc(assignmentStatusFilter)}"'), 'Expanded employee details must preserve status filter');
+assert(html.includes('function orderStatusModeMatch(r,filter)'), 'Status filtering logic must be testable and centralized');
+assert(html.includes('if(!statusMatches(r))return false'), 'Expanded rows must not leak orders from another status');
+console.log('ADMIN ORDER STATUS FILTER TEST PASS');
