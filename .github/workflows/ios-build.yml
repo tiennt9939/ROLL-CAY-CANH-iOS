@@ -140,7 +140,14 @@ jobs:
 
       - name: Sync Capacitor iOS assets
         run: npx cap sync ios
-
+        
+      - name: Diagnose CocoaPods workspace schemes
+        run: |
+          set -euxo pipefail
+          ls -la ios/App
+          xcodebuild -list -workspace ios/App/App.xcworkspace
+          xcodebuild -list -project ios/App/App.xcodeproj
+          
       - name: Build unsigned iOS Simulator app
         run: |
           xcodebuild \
