@@ -1,0 +1,27 @@
+ROLL CAY CANH V26.2.92 VALIDATION SUMMARY
+========================================
+Source version: 26.2.92
+Android versionCode: 144
+Package: com.quanlycay.apk
+
+Preflight: PASS
+JavaScript regression tests: TOTAL=84 FAILS=0
+Focused regression: Admin-delegated PDF scan is included in the assigned employee's own payroll report; another employee's delegated PDF is excluded.
+Embedded inline JavaScript syntax: 4/4 PASS
+External TikTok PDF parser syntax: PASS
+AndroidManifest.xml parse: PASS (existing preflight)
+styles.xml parse: PASS (existing preflight)
+ZIP integrity: verified after packaging
+
+Root cause fix:
+- currentPackerCompletedRows now considers adminDelegateAssignedUid as the assigned employee UID for daily shipment/PDF reports captured by Admin on the employee's behalf.
+- Wage eligibility and pay calculations are unchanged; no automatic retroactive wage adjustment is made.
+
+Preserved:
+- Shared PDF import and employee-specific PDF import.
+- Outside-order completion and wage attribution.
+- Existing payroll formulas, inventory, Firestore schema/rules, barcode and recognition logic.
+
+Not verified:
+- Gradle/APK build not run locally.
+- Live Firebase/Google Drive sync and physical-device behavior not tested.
