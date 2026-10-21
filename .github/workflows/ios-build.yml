@@ -151,7 +151,7 @@ jobs:
       - name: Build unsigned iOS Simulator app
         run: |
           xcodebuild \
-            -workspace ios/App/App.xcworkspace
+            -workspace ios/App/App.xcworkspace \
             -scheme App \
             -configuration Debug \
             -sdk iphonesimulator \
@@ -220,7 +220,7 @@ jobs:
           IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
         run: |
           xcodebuild archive \
-            -workspace ios/App/App.xcworkspace
+            -workspace ios/App/App.xcworkspace \
             -scheme App \
             -configuration Release \
             -destination 'generic/platform=iOS' \
