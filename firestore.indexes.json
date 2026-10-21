@@ -1,0 +1,23 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "packingOrders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "assignmentMode",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "assignedUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
