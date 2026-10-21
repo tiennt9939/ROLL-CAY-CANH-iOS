@@ -1,0 +1,9 @@
+import Capacitor
+
+/// Merge this override into the generated BridgeViewController.swift after `npx cap add ios`.
+/// Keep any other generated controller configuration intact.
+class BridgeViewController: CAPBridgeViewController {
+    override func capacitorDidLoad() {
+        bridge?.registerPluginInstance(RollPlatformPlugin())
+    }
+}
