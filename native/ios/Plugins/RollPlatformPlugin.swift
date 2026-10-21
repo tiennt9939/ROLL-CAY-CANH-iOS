@@ -330,10 +330,18 @@ public class RollPlatformPlugin: CAPPlugin, CAPBridgedPlugin, UIDocumentPickerDe
             do {
                 // Vision language packs vary by the iOS version/device. Request Vietnamese
                 // only when the runtime actually supports it, then retain English as fallback.
-                let available = (try? request.supportedRecognitionLanguages()) ?? []
+                
+                var available: [String] = []
+                if #available(iOS 15.0, *) {
+                    available = (try? request.supportedRecognitionLanguages()) ?? []
+                }
                 let preferred = ["vi-VN", "en-US"].filter { available.contains($0) }
-                if !preferred.isEmpty { request.recognitionLanguages = preferred }
-                else if let fallback = available.first { request.recognitionLanguages = [fallback] }
+                if !preferred.isEmpty {
+                    request.recognitionLanguages = preferred
+                } else if let fallback = available.first {
+                    request.recognitionLanguages = [fallback]
+                }
+
                 // If Vision reports no language list, leave its default instead of setting [].
                 try handler.perform([request])
                 let lines = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
