@@ -1,0 +1,21 @@
+{
+  "name": "roll-cay-canh-ios",
+  "version": "26.2.92",
+  "private": true,
+  "description": "iOS bootstrap for ROLL CÂY CẢNH; web core copied from verified Android V26.2.92 source.",
+  "scripts": {
+    "preflight": "node scripts/preflight.mjs",
+    "test": "node scripts/run-business-tests.mjs",
+    "validate": "node scripts/validate-workspace.mjs",
+    "cap:sync": "cap sync ios",
+    "cap:open:ios": "cap open ios",
+    "ios:prepare": "node scripts/prepare-ios-platform.mjs"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/ios": "^7.4.3"
+  }
+}
