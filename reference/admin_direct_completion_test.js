@@ -1,0 +1,28 @@
+const fs = require('fs');
+const path = require('path');
+const root = path.join(__dirname, '..');
+const html = fs.readFileSync(path.join(root, 'app/src/main/assets/index.html'), 'utf8');
+const rules = fs.readFileSync(path.join(root, 'firestore.rules'), 'utf8');
+const gradle = fs.readFileSync(path.join(root, 'app/build.gradle.kts'), 'utf8');
+function assert(ok, msg) { if (!ok) throw new Error(msg); }
+assert(/versionName = "[0-9]+(?:\.[0-9]+)+"/.test(gradle) && /versionCode = [124-9]+/.test(gradle), 'Android versionName and versionCode must be present');
+assert(html.includes('<div id="adminPackEntryPanel" class="hidden"'), 'Old standalone packing log/photo panel should be removed from the UI');
+assert(html.includes('onclick="adminCreateAssignments(false)"'), 'Normal assignment button must create a pending order');
+assert(html.includes('onclick="adminCreateAssignments(true)"'), 'Admin direct-completion button must use the same assignment fields');
+assert(html.includes('async function adminCreateAssignments(completeImmediately=false)'), 'Assignment flow needs a direct-completion mode');
+assert(html.includes("items, orderNo:String(data?.orderNo||''), status:'pending', date:String(data?.date||'')"), 'Direct-completion flow must first create a pending order accepted by older deployed Rules');
+assert(html.includes('await ref.set(order);') && html.includes('await ref.update(completionPatch);'), 'Admin direct completion must use staged create-then-update for compatibility with older deployed Rules');
+assert(html.includes('Đơn tạm đã được gỡ để không tính trùng'), 'Permission failures must clean up draft orders or warn about duplicate protection');
+assert(html.includes("completionMethod:'admin_no_photo'"), 'Direct mode must mark the completion method');
+assert(html.includes("async function adminCompleteOrderNoPhoto(id)"), 'Admin needs a no-photo completion action for already assigned orders');
+assert(html.includes("status:'completed',completionMethod:'admin_no_photo',completionImage:'',completionImages:[]"), 'No-photo completion must have no required image data');
+assert(html.includes('assignedPayAmount,') && html.includes('payAmount:assignedPayAmount,employeePay:assignedPayAmount'), 'Completed direct orders must snapshot assigned wages');
+assert(html.includes("if(!state?.user||state.role!=='admin')"), 'Existing-order direct completion must be Admin-only in UI code');
+const ruleStart = rules.indexOf('match /packingOrders/{orderId}');
+const ruleEnd = rules.indexOf('match /shipmentTrackingClaims/{trackingNo}', ruleStart);
+const orderRules = rules.slice(ruleStart, ruleEnd);
+assert(orderRules.includes('allow create: if isAdmin()'), 'Only Admin should create packing orders');
+assert(orderRules.includes("request.resource.data.completionMethod == 'admin_no_photo'"), 'Rules need an explicit admin_no_photo branch');
+assert(orderRules.includes("request.resource.data.completionImages.size() == 0"), 'No-photo path must require an empty image list');
+assert(orderRules.includes("request.resource.data.completedBy == request.auth.uid"), 'No-photo path must bind completion to current Admin');
+console.log('ADMIN DIRECT COMPLETION TEST PASS');
